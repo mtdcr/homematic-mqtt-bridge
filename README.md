@@ -9,7 +9,7 @@ Currently supported devices:
 [Home Assistant](https://www.home-assistant.io/), when configured for [MQTT discovery](https://www.home-assistant.io/docs/mqtt/discovery/), can auto-detect sensors and [device triggers](https://www.home-assistant.io/integrations/device_trigger.mqtt/) published by this program.
 
 ## Dependencies
-* Python 3.6+
+* Python 3.7+
 * [hbmqtt](https://pypi.org/project/hbmqtt/)
 * [pyhomematic](https://pypi.org/project/pyhomematic/)
 
