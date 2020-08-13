@@ -34,7 +34,6 @@ from pyhomematic import HMConnection
 from pyhomematic.devicetypes.actors import GenericBlind
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
 
@@ -428,6 +427,11 @@ def options() -> dict:
         "--connect",
         help="XML-RPC server of CCU, e.g. xmlrpc://ccu.local:2010",
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable logging of debug messages",
+    )
 
     args = parser.parse_args()
     filename = args.config or cfg["config"]
@@ -451,6 +455,8 @@ def options() -> dict:
 
 
 cfg = options()
+if cfg["debug"]:
+    logger.setLevel(logging.DEBUG)
 
 xmlrpc_local = xmlrpc_listen_url(cfg["listen"])
 xmlrpc_remote = xmlrpc_connect_url(cfg["connect"])
