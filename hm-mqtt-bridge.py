@@ -136,10 +136,8 @@ def mqtt_pub_availability(address, unreach):
     else:
         value = "online"
 
-    for child in ha_attributes[address]["children"]:
-        parent, index = child.split(":", 1)
-        base_topic = f"{MQTT_PREFIX}/{parent}/{index}"
-        mqtt_pub_text("%s/availability" % base_topic, value)
+    base_topic = f"{MQTT_PREFIX}/{address}"
+    mqtt_pub_text("%s/availability" % base_topic, value)
 
 
 def hm_check_interface_id(interface_id):
@@ -230,13 +228,15 @@ def hm_new_devices(devices):
             elif parent in ha_devices and index is not None:
                 node_id = f"{parent_type}_{parent}"
                 object_id = f"{index}-{devtype}"
-                base_topic = f"{MQTT_PREFIX}/{parent}/{index}"
+                parent_topic = f"{MQTT_PREFIX}/{parent}"
+                base_topic = f"{parent_topic}/{index}"
                 config = {
                     "device": ha_devices[parent],
                 }
 
                 if devtype in BINARY_SENSOR_TYPES:
                     # https://www.home-assistant.io/integrations/binary_sensor.mqtt/
+                    config["availability_topic"] = "%s/availability" % parent_topic
                     config["json_attributes_topic"] = "%s/attributes" % base_topic
                     config["name"] = f"{parent_type} {devtype} {address}"
                     config["state_topic"] = "%s/state" % base_topic
@@ -245,6 +245,7 @@ def hm_new_devices(devices):
 
                 elif devtype in SENSOR_TYPES:
                     # https://www.home-assistant.io/integrations/sensor.mqtt/
+                    config["availability_topic"] = "%s/availability" % parent_topic
                     config["json_attributes_topic"] = "%s/attributes" % base_topic
                     config["name"] = f"{parent_type} {devtype} {address}"
                     config["state_topic"] = "%s/state" % base_topic
@@ -268,7 +269,7 @@ def hm_new_devices(devices):
 
                 elif devtype in COVER_TYPES:
                     # https://www.home-assistant.io/integrations/cover.mqtt/
-                    config["availability_topic"] = "%s/availability" % base_topic
+                    config["availability_topic"] = "%s/availability" % parent_topic
                     config["command_topic"] = "%s/action" % base_topic
                     mqtt_subscribe(config["command_topic"])
                     config["device_class"] = "shutter"
