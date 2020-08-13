@@ -1,0 +1,5 @@
+{
+    "broker": "mqtt://localhost",
+    "listen": "xmlrpc://0.0.0.0",
+    "connect": "xmlrpc://ccu.local:2010"
+}

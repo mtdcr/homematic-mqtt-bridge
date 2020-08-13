@@ -402,40 +402,70 @@ def xmlrpc_connect_url(url):
     raise ValueError
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--broker",
-    default="mqtt://localhost",
-    type=str,
-    required=False,
-    help="MQTT broker (default: %(default)s)",
-)
-parser.add_argument(
-    "--listen",
-    default="xmlrpc://0.0.0.0",
-    type=xmlrpc_listen_url,
-    required=False,
-    help="Where to listen for connections from CCU (default: %(default)s)",
-)
-parser.add_argument(
-    "connect",
-    type=xmlrpc_connect_url,
-    help="XML-RPC server of CCU, e.g. xmlrpc://ccu.local:2010",
-)
-args = parser.parse_args()
 
+
+def options() -> dict:
+    cfg = {
+        "config": "/var/lib/hm-mqtt-bridge/config.json",
+        "broker": "mqtt://localhost",
+        "listen": "xmlrpc://0.0.0.0",
+    }
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        help=f"Location of config file (default: {cfg['config']})",
+    )
+    parser.add_argument(
+        "--broker",
+        help=f"MQTT broker (default: {cfg['broker']})",
+    )
+    parser.add_argument(
+        "--listen",
+        help=f"Where to listen for connections from CCU (default: {cfg['listen']})",
+    )
+    parser.add_argument(
+        "--connect",
+        help="XML-RPC server of CCU, e.g. xmlrpc://ccu.local:2010",
+    )
+
+    args = parser.parse_args()
+    filename = args.config or cfg["config"]
+
+    try:
+        with open(filename, "r") as f:
+            cfg.update(json.load(f))
+    except OSError as exc:
+        if args.config or not isinstance(exc, FileNotFoundError):
+            logger.error("Failed to open configuration file: %s", exc)
+            sys.exit(1)
+    except json.JSONDecodeError as exc:
+        logger.error("Failed to parse configuration file: %s", exc)
+        sys.exit(1)
+
+    for key, value in vars(args).items():
+        if value is not None:
+            cfg[key] = value
+
+    return cfg
+
+
+cfg = options()
+
+xmlrpc_local = xmlrpc_listen_url(cfg["listen"])
+xmlrpc_remote = xmlrpc_connect_url(cfg["connect"])
 
 homematic = HMConnection(
     interface_id=HM_INTERFACE_ID,
-    local=args.listen.hostname,
-    localport=args.listen.port or 0,
+    local=xmlrpc_local.hostname,
+    localport=xmlrpc_local.port or 0,
     remotes={
         HM_REMOTE: {
-            "ip": args.connect.hostname,
-            "port": args.connect.port,
-            "path": args.connect.path or "",
-            "username": args.connect.username or "Admin",
-            "password": args.connect.password or "",
+            "ip": xmlrpc_remote.hostname,
+            "port": xmlrpc_remote.port,
+            "path": xmlrpc_remote.path or "",
+            "username": xmlrpc_remote.username or "Admin",
+            "password": xmlrpc_remote.password or "",
         }
     },
     eventcallback=hm_event_callback,
@@ -443,7 +473,7 @@ homematic = HMConnection(
 )
 
 try:
-    asyncio.run(main(args.broker, homematic))
+    asyncio.run(main(cfg["broker"], homematic))
 except KeyboardInterrupt:
     pass
 
