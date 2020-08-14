@@ -10,7 +10,7 @@ Currently supported devices:
 
 ## Dependencies
 * Python 3.7+
-* [hbmqtt](https://pypi.org/project/hbmqtt/)
+* [asyncio-mqtt](https://pypi.org/project/asyncio-mqtt/) >= 0.7.0
 * [pyhomematic](https://pypi.org/project/pyhomematic/)
 
 ## How to use
