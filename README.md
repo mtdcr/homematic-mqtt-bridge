@@ -32,12 +32,12 @@ In order to support new devices, I need their names and the channels they use. T
 python3 -m venv $someDirectory
 source $someDirectory/bin/activate
 pip install pyhomematic asyncio-mqtt
-hm-inventory.py --connect xmlrpc://$ccuIP:2010 > out.txt
+./hm-inventory.py --connect xmlrpc://$ccuIP:2010 | tee inventory.log
 ```
 or using the docker container:
 ```sh
 docker build --pull -t homematic-mqtt-bridge .
-docker run -it homematic-mqtt-bridge /opt/homematic-mqtt-bridge/hm-inventory.py --connect xmlrpc://$ccuIP:2010 > out.txt
+docker run -it homematic-mqtt-bridge /opt/homematic-mqtt-bridge/hm-inventory.py --connect xmlrpc://$ccuIP:2010 | tee inventory.log
 ```
 
 It does not stop running, as it records incoming events from the devices. It helps if you can press some buttons on the devices in question. If you are done, stop the script (ctrl-c) and anonymize the data in the out.txt:
