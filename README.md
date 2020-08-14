@@ -29,8 +29,9 @@ docker run -it homematic-mqtt-bridge /opt/homematic-mqtt-bridge/hm-mqtt-bridge.p
 ## How to get new devices supported
 In order to support new devices, I need their names and the channels they use. To help with that you can run the hm-inventory.py script. Either directly:
 ```sh
-python3.7 -m venv $someDirectory
+python3 -m venv $someDirectory
 source $someDirectory/bin/activate
+pip install pyhomematic asyncio-mqtt
 hm-inventory.py --connect xmlrpc://$ccuIP:2010 > out.txt
 ```
 or using the docker container:
