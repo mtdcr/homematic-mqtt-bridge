@@ -31,7 +31,7 @@ In order to support new devices, I need their names and the channels they use. T
 ```sh
 python3 -m venv $someDirectory
 source $someDirectory/bin/activate
-pip install pyhomematic asyncio-mqtt
+pip install pyhomematic
 ./hm-inventory.py --connect xmlrpc://$ccuIP:2010 | tee inventory.log
 ```
 or using the docker container:
