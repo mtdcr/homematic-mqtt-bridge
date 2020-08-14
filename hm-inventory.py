@@ -25,6 +25,7 @@ import argparse
 import json
 import logging
 import sys
+import traceback
 from pprint import pformat
 from signal import SIG_DFL, SIGINT, SIGTERM, signal
 from typing import Optional
@@ -36,15 +37,77 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
+KNOWN_DEVICES = {
+    "HmIP-BROLL",
+    "HmIP-RCV-50",
+    "HmIP-SRH",
+    "HmIP-SWSD",
+}
+
 
 class HomematicInventory:
+    def __init__(self):
+        self._devices = {}
+        self._skipped = set()
+        self._serial = 1
+
+        logger.info("devices = []")
+        logger.info("events = []")
+
     def _event_callback(
         self, interface_id: str, address: str, value_key: str, value: str
     ) -> None:
-        logger.info("event: %s", pformat([address, value_key, value]))
+        try:
+            address = address.split(":")[0]
+            alias = self._devices.get(address)
+            if alias:
+                logger.info("events += %s", pformat([alias, value_key, value]))
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise
 
     def _system_callback(self, src: str, *args) -> None:
-        logger.info("system: %s: %s", src, pformat(args))
+        try:
+            if src == "newDevices" and len(args) >= 2:
+                for device in args[1]:
+                    parent = device["PARENT"]
+                    if parent:
+                        device_type = device["PARENT_TYPE"]
+                        address = parent
+                    else:
+                        device_type = device["TYPE"]
+                        address = device["ADDRESS"]
+
+                    if device_type in KNOWN_DEVICES:
+                        if device_type not in self._skipped:
+                            logger.info(
+                                "# Skipping devices of type %s", device_type
+                            )
+                        self._skipped.add(device_type)
+                        continue
+
+                    alias = self._devices.get(address)
+                    if not alias:
+                        alias = f"{self._serial:014X}"
+                        self._serial += 1
+                        self._devices[address] = alias
+
+                    if parent:
+                        index = device["INDEX"]
+                        device["ADDRESS"] = f"{alias}:{index}"
+                        device["PARENT"] = alias
+                    else:
+                        device["ADDRESS"] = alias
+                        for n, child in enumerate(device["CHILDREN"]):
+                            device["CHILDREN"][n] = child.replace(
+                                address, alias
+                            )
+                        device["RF_ADDRESS"] = 0
+
+                    logger.info("devices += %s", pformat([device]))
+        except Exception:
+            logger.error(traceback.format_exc())
+            raise
 
     def _xmlrpc_listen_url(self, url: str) -> Optional[ParseResult]:
         if "://" not in url:
