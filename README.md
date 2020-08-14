@@ -40,11 +40,6 @@ docker build --pull -t homematic-mqtt-bridge .
 docker run -it homematic-mqtt-bridge /opt/homematic-mqtt-bridge/hm-inventory.py --connect xmlrpc://$ccuIP:2010 | tee inventory.log
 ```
 
-It does not stop running, as it records incoming events from the devices. It helps if you can press some buttons on the devices in question. If you are done, stop the script (ctrl-c) and anonymize the data in the out.txt:
-
-```sh
-sed -i "s/'RF_ADDRESS': [0-9]\{7\}/'RF_ADDRESS': 0000000/g" out.txt
-sed -i "s/'[A-Z0-9]\{12\}/'000000000000/g" out.txt
-```
+It does not stop running, as it records incoming events from the devices. It helps if you can press some buttons on the devices in question. If you are done, stop the script (ctrl-c).
 
 Post this file as a new issue with the device name you want supported.
