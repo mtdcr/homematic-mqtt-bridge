@@ -33,7 +33,7 @@ from urllib.parse import urlparse
 
 from asyncio_mqtt import Client, MqttError, Will
 from pyhomematic import HMConnection
-from pyhomematic.devicetypes.actors import GenericBlind
+from pyhomematic.devicetypes.actors import GenericBlind, GenericSwitch
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -56,9 +56,17 @@ DEVICE_TRIGGER_TYPES = {"KEY_TRANSCEIVER"}
 SENSOR_TYPES = {
     "ALARM_COND_SWITCH_TRANSMITTER",
     "BLIND_WEEK_PROFILE",
+    "COND_SWITCH_TRANSMITTER",
+    "ENERGIE_METER_TRANSMITTER",
     "ROTARY_HANDLE_TRANSCEIVER",
     "SHUTTER_TRANSMITTER",
     "SMOKE_DETECTOR",
+    "SWITCH_TRANSMITTER",
+    "SWITCH_WEEK_PROFILE",
+}
+
+SWITCH_TYPES = {
+    "SWITCH_VIRTUAL_RECEIVER",
 }
 
 SENSOR_UNITS = {
@@ -178,8 +186,8 @@ class HomematicMqttBridge:
         # HmIP-BROLL(4,5,6)
         elif chan_type == "SHUTTER_VIRTUAL_RECEIVER" and key == "LEVEL":
             self._publish(mqtt, "%s/state" % base_topic, int(round(value * 100)))
-        # HmIP-BROLL(7)
-        elif chan_type == "BLIND_WEEK_PROFILE" and key == "WEEK_PROGRAM_CHANNEL_LOCKS":
+        # HmIP-BROLL(7), HmIP-BSM(9)
+        elif chan_type.endswith("_WEEK_PROFILE") and key == "WEEK_PROGRAM_CHANNEL_LOCKS":
             self._publish(mqtt, "%s/state" % base_topic, value)
         # HmIP-SRH(1)
         elif chan_type == "ROTARY_HANDLE_TRANSCEIVER" and key == "STATE":
@@ -189,6 +197,9 @@ class HomematicMqttBridge:
         elif chan_type == "SMOKE_DETECTOR" and key == "SMOKE_DETECTOR_ALARM_STATUS":
             text = SMOKE_DETECTOR_VALUES.get(value, "unknown")
             self._publish(mqtt, "%s/state" % base_topic, text)
+        # HmIP-BSM(4,5,6)
+        elif chan_type == "SWITCH_VIRTUAL_RECEIVER" and key == "STATE":
+            self._publish(mqtt, "%s/state" % base_topic, value)
 
     def _new_devices(self, mqtt, devices) -> None:
         logger.debug("new_devices()")
@@ -287,6 +298,21 @@ class HomematicMqttBridge:
                         config["unique_id"] = "Homematic-%s" % address
                         self._publish_discovery(mqtt, "cover", node_id, object_id, config)
 
+                    elif devtype in SWITCH_TYPES:
+                        # https://www.home-assistant.io/integrations/switch.mqtt/
+                        config["availability_topic"] = "%s/availability" % parent_topic
+                        config["command_topic"] = "%s/action" % base_topic
+                        self._subscribe(mqtt, config["command_topic"])
+                        config["json_attributes_topic"] = "%s/attributes" % base_topic
+                        config["name"] = f"{parent_type} {devtype} {address}"
+                        config["payload_off"] = "off"
+                        config["payload_on"] = "on"
+                        config["state_off"] = "OFF"
+                        config["state_on"] = "ON"
+                        config["state_topic"] = "%s/state" % base_topic
+                        config["unique_id"] = "Homematic-%s" % address
+                        self._publish_discovery(mqtt, "switch", node_id, object_id, config)
+
                     else:
                         logger.warning("Unhandled channel: %s", devtype)
 
@@ -353,6 +379,15 @@ class HomematicMqttBridge:
 
                 logger.debug("%s:%d: set_level(%s)", address, channel, level)
                 hmdevice.set_level(level, channel)
+
+        elif isinstance(hmdevice, GenericSwitch) and hmchannel.TYPE in SWITCH_TYPES:
+            if name == "action":
+                if data not in ("on", "off"):
+                    logger.error("Invalid action: %s", data)
+                    return
+
+                logger.debug("%s:%s: %s()", address, channel, data)
+                getattr(hmdevice, data)(channel)
 
     def _xmlrpc_listen_url(self, url):
         if "://" not in url:
