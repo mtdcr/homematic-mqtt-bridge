@@ -197,8 +197,8 @@ class HomematicMqttBridge:
         elif chan_type == "SMOKE_DETECTOR" and key == "SMOKE_DETECTOR_ALARM_STATUS":
             text = SMOKE_DETECTOR_VALUES.get(value, "unknown")
             self._publish(mqtt, "%s/state" % base_topic, text)
-        # HmIP-BSM(4,5,6)
-        elif chan_type == "SWITCH_VIRTUAL_RECEIVER" and key == "STATE":
+        # HmIP-BSM(3,4,5,6)
+        elif chan_type in ("SWITCH_TRANSMITTER", "SWITCH_VIRTUAL_RECEIVER") and key == "STATE":
             self._publish(mqtt, "%s/state" % base_topic, value)
 
     def _new_devices(self, mqtt, devices) -> None:
