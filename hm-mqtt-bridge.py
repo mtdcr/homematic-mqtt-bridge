@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2020 Andreas Oberritter
+# Copyright 2022 Andreas Oberritter
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -453,7 +453,7 @@ class HomematicMqttBridge:
             homematic.stop()
 
 
-async def main(cfg: dict) -> None:
+async def async_main(cfg: dict) -> None:
     if cfg["debug"]:
         logger.setLevel(logging.DEBUG)
 
@@ -511,10 +511,15 @@ def options() -> dict:
     return cfg
 
 
-try:
-    asyncio.run(main(options()))
-except MqttError as exc:
-    logger.critical("MQTT error: %s", exc)
-    sys.exit(1)
-except KeyboardInterrupt:
-    pass
+def main():
+    try:
+        asyncio.run(async_main(options()))
+    except MqttError as exc:
+        logger.critical("MQTT error: %s", exc)
+        sys.exit(1)
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()

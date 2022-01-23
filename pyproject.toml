@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "homematic-mqtt-bridge"
+version = "0.1.0"
+description = "A bridge between Homematic and MQTT"
+authors = ["Andreas Oberritter <obi@saftware.de>"]
+license = "MIT"
+packages = [
+    { include = "hm-mqtt-bridge.py" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+asyncio-mqtt = "^0.12.1"
+pyhomematic = "^0.1.77"
+
+[tool.poetry.scripts]
+homematic-mqtt-bridge = "hm-mqtt-bridge:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
